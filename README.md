@@ -1,6 +1,9 @@
-# TB4 — Сервис авторизации по номеру телефона и реферальная система
+# Referra — сервис авторизации по телефону и реферальная система
 
-Учебный дипломный проект на **Python 3.13, Django 5.2 LTS, Django REST Framework, PostgreSQL и Docker**. Предусмотрены API, веб-интерфейс Django Templates, ReDoc, Postman-коллекция, миграция БД, тесты pytest и покрытие `pytest-cov`.
+**Дипломный проект Skypro · TB4**  
+**Репозиторий:** https://github.com/ALTSisyphus/referra
+
+Учебный дипломный проект на **Python 3.13, Django 5.2 LTS, Django REST Framework, PostgreSQL и Docker**. Реализованы REST API, веб-интерфейс Django Templates, ReDoc/Swagger, Postman-коллекция, миграции БД и автоматизированные тесты `pytest` с покрытием `pytest-cov`.
 
 > **Внимание:** SMS в этой версии **не отправляются** настоящим абонентам. Четырёхзначный код выводится в журнал процесса Django; реализация предназначена для локальной демонстрации. Для публичного развёртывания требуется подключить реального SMS-провайдера и дополнительную защиту на периметре. `DEBUG=0` **запрещает** использование демонстрационного SMS-бэкенда.
 
@@ -17,11 +20,13 @@
 - Минимальный шаблонный веб-интерфейс на `/` и `/profile/` с защитой CSRF.
 - Документация OpenAPI, ReDoc и Swagger UI; коллекция Postman.
 
-## 2. Быстрый запуск на Ubuntu 26.04 + VS Code
+## 2. Быстрый запуск через Docker Compose (Linux, VS Code)
 
-Установите Docker Engine + Docker Compose Plugin. В терминале VS Code:
+Требуются Git, Docker Engine и Docker Compose Plugin. Откройте терминал VS Code в каталоге, куда хотите скачать проект:
 
 ```bash
+git clone https://github.com/ALTSisyphus/referra.git
+cd referra
 cp .env.example .env
 # Для безопасного локального секрета выполните:
 python3 -c 'import secrets; print(secrets.token_urlsafe(48))'
@@ -173,7 +178,7 @@ Authorization: Token f67d...
 ## 6. Архитектура
 
 ```text
-tb4_referral_system/
+referra/
 ├── accounts/
 │   ├── migrations/                # начальная миграция моделей
 │   ├── models.py                  # User, PhoneChallenge
@@ -206,19 +211,23 @@ tb4_referral_system/
 ## 7. Тестирование
 
 ```bash
-# локально, после pip install -r requirements-dev.txt
-pytest
+# Полная проверка в одноразовом Docker-контейнере:
+docker compose run --rm --user root web sh -c \
+  'pip install -q -r requirements-dev.txt && ruff check . && ruff format --check . && python -m pytest -q'
 
-# через контейнеры (используется тестовая БД SQLite, PostgreSQL не затрагивается)
-docker compose run --rm --user root web sh -c 'pip install -r requirements-dev.txt && pytest'
+# Проверка конфигурации и миграций на запущенном приложении:
+docker compose exec web python manage.py check
+docker compose exec web python manage.py makemigrations --check --dry-run
 
-# статическая проверка стиля
-ruff check .
+# Проверка генерации OpenAPI:
+docker compose exec web python manage.py spectacular --validate > /dev/null
 ```
+
+> Предупреждение `pip` при установке от `root` относится к одноразовому контейнеру проверки; для обычной локальной разработки используйте виртуальное окружение. Команда `spectacular --validate` при успехе выводит схему в stdout, поэтому поток перенаправлен в `/dev/null`.
 
 `pytest.ini` использует `config.settings_test` и `pytest-cov` с порогом **75%** (`--cov-fail-under=75`). Тесты покрывают валидацию телефонов, OTP, срок действия и попытки, создание/повторный вход, активацию чужого инвайта, защиту профилей, веб-формы, CSRF-совместимую сессию и страницу схемы API.
 
-> Статус первоначального релиза: исходники, тесты и конфигурация созданы; **полный тестовый прогон с Django не выполнялся в среде подготовки**, поскольку загрузка зависимостей была недоступна. Запусти `pytest` после установки зависимостей, чтобы подтвердить фактическое покрытие, а не полагаться на целевой порог в конфигурации. Для проверки блокировок и гонок также рекомендуется отдельное интеграционное тестирование на PostgreSQL.
+> **Результат локальной проверки от 28.10.2026:** `36 passed in 2.42s`; покрытие **91,21%** при минимально требуемых 75%. `ruff check .` — **All checks passed!**; `ruff format --check .` — **28 files already formatted**. Проверки выполнены внутри Docker-контейнера Python 3.13.18. Автотесты используют SQLite в памяти и не заменяют отдельные интеграционные тесты на PostgreSQL. Фактический запуск API и веб-интерфейса с PostgreSQL через Docker Compose проверен отдельно.
 
 ## 8. Границы проекта и безопасность
 
@@ -238,20 +247,3 @@ docker compose exec web python manage.py showmigrations
 docker compose exec web python manage.py check
 docker compose logs --tail=100 web
 ```
-
-Схема и API документированы ReDoc, примеры запросов/ответов приведены в README, Postman-файл находится в `postman/`.
-
-## 10. Публикация в GitHub
-
-Дипломное ТЗ требует удалённый репозиторий. Создай пустой репозиторий в своём GitHub, затем выполни из корневой директории проекта:
-
-```bash
-git init
-git add .
-git commit -m "TB4: referral system with phone OTP"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git push -u origin main
-```
-
-`YOUR_USERNAME` и `YOUR_REPO` замени на фактические значения. **Не коммить `.env`**: файл уже исключён в `.gitignore`. После `git push` запустится подготовленная GitHub Actions workflow (`.github/workflows/ci.yml`) со статической проверкой, миграциями и pytest. Отдельная карта соответствия ТЗ — `ACCEPTANCE.md`.
