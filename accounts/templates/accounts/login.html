@@ -1,0 +1,18 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Вход по телефону — TB4{% endblock %}
+{% block heading %}Вход без пароля{% endblock %}
+{% block lead %}Укажи номер телефона — мы сгенерируем одноразовый 4-значный код.{% endblock %}
+{% block body %}
+<section class="panel">
+  <div class="section-num">01 / АВТОРИЗАЦИЯ</div>
+  <h2>Введите номер</h2>
+  <form method="post">{% csrf_token %}
+    {{ form.non_field_errors }}
+    <label for="{{ form.phone_number.id_for_label }}">Номер телефона (международный формат)</label>
+    <input id="{{ form.phone_number.id_for_label }}" name="phone_number" placeholder="+79991234567" autocomplete="tel" required value="{{ form.phone_number.value|default_if_none:'' }}">
+    {{ form.phone_number.errors }}
+    <button type="submit">Получить код <span>→</span></button>
+  </form>
+  <p class="tip">В демонстрационном режиме код можно увидеть командой <code>docker compose logs web</code>. Между отправками действует пауза 60 секунд.</p>
+</section>
+{% endblock %}

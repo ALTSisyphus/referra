@@ -1,0 +1,41 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+staticfiles/
+*.sqlite3
+.idea/
+.vscode/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Testing and coverage
+.pytest_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+
+# Local data and generated files
+*.sqlite3
+staticfiles/
+*.log
+*.bak
+
+# Editors
+.idea/
+.vscode/

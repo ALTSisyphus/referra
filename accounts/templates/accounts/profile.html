@@ -1,0 +1,30 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Мой профиль — TB4{% endblock %}
+{% block heading %}Личный кабинет{% endblock %}
+{% block lead %}Приглашай других и управляй своей реферальной связью.{% endblock %}
+{% block body %}
+<div class="cols">
+  <section class="panel">
+    <div class="section-num">01 / ПРОФИЛЬ</div>
+    <h2>Мои данные</h2>
+    <dl><dt>Телефон</dt><dd>{{ member.phone_number }}</dd><dt>Мой инвайт-код</dt><dd><strong class="code">{{ member.invite_code }}</strong></dd><dt>Активированный код</dt><dd>{% if member.invited_by %}<strong class="code">{{ member.invited_by.invite_code }}</strong>{% else %}<span class="muted">Не активирован</span>{% endif %}</dd></dl>
+    {% if not member.invited_by %}
+    <form method="post">{% csrf_token %}
+      {{ form.non_field_errors }}
+      <label for="{{ form.invite_code.id_for_label }}">Введите чужой инвайт-код</label>
+      <input id="{{ form.invite_code.id_for_label }}" name="invite_code" maxlength="6" placeholder="ABC123" required>
+      {{ form.invite_code.errors }}
+      <button type="submit">Активировать <span>→</span></button>
+    </form>
+    {% else %}<p class="tip">Повторная активация недоступна.</p>{% endif %}
+  </section>
+  <section class="panel">
+    <div class="section-num">02 / ПРИГЛАШЕНИЯ</div>
+    <h2>Мои рефералы <span class="counter">{{ invited_phones|length }}</span></h2>
+    {% if invited_phones %}<ul class="referrals">{% for phone in invited_phones %}<li><span class="avatar">✓</span>{{ phone }}</li>{% endfor %}</ul>
+    {% else %}<p class="muted">Пока никто не использовал твой инвайт-код.</p>{% endif %}
+    <p class="tip">Поделись кодом <strong>{{ member.invite_code }}</strong> с другим пользователем сервиса.</p>
+  </section>
+</div>
+<form method="post" action="{% url 'web_logout' %}" class="logout">{% csrf_token %}<button type="submit" class="secondary">Выйти из профиля</button></form>
+{% endblock %}

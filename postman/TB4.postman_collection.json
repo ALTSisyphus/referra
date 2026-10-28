@@ -1,0 +1,260 @@
+{
+  "info": {
+    "_postman_id": "1c480a36-994c-455c-a7ef-66f40f454b27",
+    "name": "TB4 — Phone OTP + Referral API",
+    "description": "Сначала запросите OTP; возьмите код в docker compose logs web и установите переменную sms_code. Для реферала нужен код другого пользователя.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Запросить SMS-код",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/request-code/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "request-code"
+          ]
+        },
+        "description": "1. Запросить SMS-код",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone_number\": \"{{phone_number}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"202 Accepted\", () => pm.response.to.have.status(202));",
+              "pm.test(\"Есть срок действия\", () => pm.expect(pm.response.json().expires_in).to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Подтвердить SMS-код",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/verify-code/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "verify-code"
+          ]
+        },
+        "description": "2. Подтвердить SMS-код",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone_number\": \"{{phone_number}}\",\n  \"code\": \"{{sms_code}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const data = pm.response.json();",
+              "  pm.collectionVariables.set(\"token\", data.token);",
+              "  pm.collectionVariables.set(\"my_invite_code\", data.profile.invite_code);",
+              "}",
+              "pm.test(\"Получен токен\", () => pm.expect(pm.response.json().token).to.be.a(\"string\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Получить профиль",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/profile/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "profile"
+          ]
+        },
+        "description": "3. Получить профиль"
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Есть инвайт-код и рефералы\", () => { const d = pm.response.json(); pm.expect(d).to.have.property(\"invite_code\"); pm.expect(d.invited_phones).to.be.an(\"array\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Активировать чужой инвайт-код",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/profile/activate-invite/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "profile",
+            "activate-invite"
+          ]
+        },
+        "description": "4. Активировать чужой инвайт-код",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"invite_code\": \"{{invite_code}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Код активирован\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Отображается активированный код\", () => pm.expect(pm.response.json().activated_invite_code).to.eql(pm.collectionVariables.get(\"invite_code\").toUpperCase()));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Выход (удалить API-токен)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/logout/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "logout"
+          ]
+        },
+        "description": "5. Выход (удалить API-токен)"
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));",
+              "if (pm.response.code === 204) pm.collectionVariables.unset(\"token\");"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "phone_number",
+      "value": "+79991234567"
+    },
+    {
+      "key": "sms_code",
+      "value": "0000",
+      "description": "Заменить на код из логов сервера"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "Автоматически заполнится после подтверждения OTP"
+    },
+    {
+      "key": "my_invite_code",
+      "value": "",
+      "description": "Мой инвайт-код, автоматически сохранён из профиля"
+    },
+    {
+      "key": "invite_code",
+      "value": "ABC123",
+      "description": "Чужой инвайт-код (для тестирования активации)"
+    }
+  ]
+}

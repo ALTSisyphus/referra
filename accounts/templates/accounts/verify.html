@@ -1,0 +1,18 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Подтверждение — TB4{% endblock %}
+{% block heading %}Подтверди вход{% endblock %}
+{% block lead %}Код отправлен на {{ phone }} (имитация SMS).{% endblock %}
+{% block body %}
+<section class="panel">
+  <div class="section-num">02 / ПОДТВЕРЖДЕНИЕ</div>
+  <h2>Четыре цифры</h2>
+  <form method="post">{% csrf_token %}
+    {{ form.non_field_errors }}
+    <label for="{{ form.code.id_for_label }}">Одноразовый код</label>
+    <input id="{{ form.code.id_for_label }}" name="code" placeholder="0000" pattern="[0-9]{4}" inputmode="numeric" maxlength="4" autocomplete="one-time-code" required>
+    {{ form.code.errors }}
+    <button type="submit">Войти <span>→</span></button>
+  </form>
+  <p class="tip">Код действителен 5 минут, максимум 5 попыток. <a href="{% url 'web_login' %}">Изменить номер телефона</a>.</p>
+</section>
+{% endblock %}
